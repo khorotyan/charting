@@ -1,0 +1,12 @@
+.main {
+	display: flex;
+	justify-content: space-between;
+
+	&__chart-container {
+		flex-grow: 1;
+	}
+
+	&__symbols-container {
+		width: 20%;
+	}
+}

@@ -4,9 +4,7 @@
 
 	export let symbol: string;
 
-	$: {
-		fetchData(symbol);
-	}
+	$: fetchData(symbol), symbol;
 
 	type CandlestickData = {
 		date: Date;
@@ -73,12 +71,17 @@
 			.range([0, width])
 			.padding(0.2);
 
+		// calculate 'y' range and extend it by 12% on both sides
+		const minYValue = d3.min(data, (d: CandlestickData) => d.low) ?? 0;
+		const maxYValue = d3.max(data, (d: CandlestickData) => d.high) ?? 0;
+		const range = maxYValue - minYValue;
+		const yPadding = range * 0.12;
+		const extendedMinYValue = minYValue - yPadding;
+		const extendedMaxYValue = maxYValue + yPadding;
+
 		const yScale = d3
 			.scaleLinear()
-			.domain([
-				d3.min(data, (d: CandlestickData) => d.low) ?? 0,
-				d3.max(data, (d: CandlestickData) => d.high) ?? 0
-			])
+			.domain([extendedMinYValue, extendedMaxYValue])
 			.range([height, 0]);
 
 		svg
@@ -133,7 +136,7 @@
 </script>
 
 <div id="chart" class="chart">
-	<h2>Chart for {symbol}</h2>
+	<p>Chart for <b>{symbol}</b></p>
 </div>
 
 <style lang="scss">

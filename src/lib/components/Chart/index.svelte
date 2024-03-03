@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import * as d3 from 'd3';
+	import { fetchData } from './utils/fetchData';
+	import { browser } from '$app/environment';
+	import { drawChart } from './utils/drawChart';
+	import { onDestroy, onMount } from 'svelte';
 
 	export let symbol: string;
-
-	$: fetchData(symbol), symbol;
 
 	type CandlestickData = {
 		date: Date;
@@ -15,127 +15,84 @@
 		volume: number;
 	};
 
+	// TODO: get rid of magic numbers
+	let startingIndex = 0;
+	let selectedDataLength = 30;
 	let data: CandlestickData[] = [];
+	let selectedData: CandlestickData[] = [];
+
+	// only make the fetch calls in the browser
+	$: if (browser) {
+		symbol && handleFetchData();
+	}
+
+	async function handleFetchData() {
+		data = await fetchData(symbol);
+
+		// show only 1/6th of data
+		// TODO: Later fetch data again when reaching close to the edges of data
+		selectedDataLength = Math.floor(data.length / 6);
+		startingIndex = Math.ceil(5 * selectedDataLength);
+		selectedData = data.slice(startingIndex);
+
+		drawChart(selectedData);
+	}
+
+	let chartElement: HTMLDivElement;
+	let isDragging = false;
+	let startX = 0;
+
+	function handleMouseDown(event) {
+		isDragging = true;
+		startX = event.clientX;
+	}
+
+	function handleMouseMove(event) {
+		if (!isDragging) return;
+		const difference = event.clientX - startX;
+		startX = event.clientX;
+
+		// do not let the user to scroll too much to the left or right
+		let newStartingIndex = startingIndex - Math.ceil(difference / 3);
+		let rightmostIndex = data.length - selectedDataLength / 3;
+		if (newStartingIndex > rightmostIndex) {
+			newStartingIndex = rightmostIndex;
+		}
+		if (newStartingIndex < 0) {
+			newStartingIndex = 0;
+		}
+
+		let newLength = Math.min(startingIndex + selectedDataLength, data.length);
+		selectedData = data.slice(newStartingIndex, newLength);
+		startingIndex = newStartingIndex;
+		console.log('startingIndex', startingIndex);
+
+		drawChart(selectedData);
+
+		// TODO: throttle
+	}
+
+	function handleMouseUp() {
+		if (!isDragging) return;
+		isDragging = false;
+	}
 
 	onMount(() => {
-		fetchData(symbol);
+		chartElement.addEventListener('mousedown', handleMouseDown);
+		chartElement.addEventListener('mousemove', handleMouseMove);
+		chartElement.addEventListener('mouseup', handleMouseUp);
 	});
 
-	// TODO: Handle 'any' types
-	async function fetchData(symbol: string): Promise<void> {
-		const token = import.meta.env.VITE_IEXCLOUD_PUBLIC_KEY;
-		const url = `https://cloud.iexapis.com/stable/stock/${symbol}/chart/6m?token=${token}`;
-
-		try {
-			const response = await fetch(url);
-			const result = await response.json();
-
-			// modify data to be in the right format
-			data = result.map(
-				(d: any): CandlestickData => ({
-					date: new Date(d.date),
-					open: d.open,
-					high: d.high,
-					low: d.low,
-					close: d.close,
-					volume: d.volume
-				})
-			);
-
-			drawChart();
-		} catch (error) {
-			console.error('Error fetching data:', error);
+	onDestroy(() => {
+		if (chartElement) {
+			chartElement.removeEventListener('mousedown', handleMouseDown);
+			chartElement.removeEventListener('mousemove', handleMouseMove);
+			chartElement.removeEventListener('mouseup', handleMouseUp);
 		}
-	}
-
-	function drawChart(): void {
-		const margin = { top: 20, right: 50, bottom: 70, left: 40 };
-		const width = 800 - margin.left - margin.right;
-		const height = 400 - margin.top - margin.bottom;
-		const volumeHeight = 80; // max height for volume bars
-
-		// clear any previous chart
-		d3.select('#chart').select('svg').remove();
-
-		const svg = d3
-			.select('#chart')
-			.append('svg')
-			.attr('width', width + margin.left + margin.right)
-			.attr('height', height + margin.top + margin.bottom)
-			.append('g')
-			.attr('transform', `translate(${margin.left},${margin.top})`);
-
-		const xScale = d3
-			.scaleBand()
-			.domain(data.map((d) => d.date as unknown as string))
-			.range([0, width])
-			.padding(0.2);
-
-		// calculate 'y' range and extend it by 12% on both sides
-		const minYValue = d3.min(data, (d: CandlestickData) => d.low) ?? 0;
-		const maxYValue = d3.max(data, (d: CandlestickData) => d.high) ?? 0;
-		const range = maxYValue - minYValue;
-		const yPadding = range * 0.12;
-		const extendedMinYValue = minYValue - yPadding;
-		const extendedMaxYValue = maxYValue + yPadding;
-
-		const yScale = d3
-			.scaleLinear()
-			.domain([extendedMinYValue, extendedMaxYValue])
-			.range([height, 0]);
-
-		svg
-			.append('g')
-			.attr('transform', `translate(0,${height})`)
-			.call(d3.axisBottom(xScale as any).tickFormat(d3.timeFormat('%Y-%m-%d') as any));
-
-		svg.append('g').call(d3.axisLeft(yScale));
-
-		// draw candlesticks
-		data.forEach((d) => {
-			const x = xScale(d.date as unknown as string) ?? 0;
-			const barWidth = xScale.bandwidth();
-			svg
-				.append('line') // high-low line
-				.attr('x1', x + barWidth / 2)
-				.attr('x2', x + barWidth / 2)
-				.attr('y1', yScale(d.high))
-				.attr('y2', yScale(d.low))
-				.attr('stroke', d.close > d.open ? '#26a69a' : '#ef5350');
-
-			svg
-				.append('rect') // open-close rectangle
-				.attr('x', x)
-				.attr('width', barWidth)
-				.attr('y', yScale(Math.max(d.open, d.close)))
-				.attr('height', Math.abs(yScale(d.open) - yScale(d.close)))
-				.attr('fill', d.close > d.open ? '#26a69a' : '#ef5350');
-		});
-
-		// draw volume bars
-		const volumeScale = d3
-			.scaleLinear()
-			.domain([0, d3.max(data, (d) => d.volume) ?? 0])
-			.range([height, height - volumeHeight])
-			.clamp(true);
-
-		data.forEach((d) => {
-			const volumeValue = d.volume > 0 ? d.volume : 1;
-			const barHeight = height - volumeScale(volumeValue);
-
-			svg
-				.append('rect')
-				.attr('x', xScale(d.date as unknown as string) ?? 0)
-				.attr('width', xScale.bandwidth())
-				.attr('y', height - barHeight)
-				.attr('height', barHeight)
-				.attr('fill', d.close > d.open ? '#26a69a' : '#ef5350')
-				.attr('fill-opacity', 0.5);
-		});
-	}
+	});
 </script>
 
-<div id="chart" class="chart">
+<div id="chart" bind:this={chartElement} class="chart">
 	<p>Chart for <b>{symbol}</b></p>
 </div>
 

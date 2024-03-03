@@ -6,7 +6,11 @@
 		{ symbol: 'AAPL', name: 'Apple Inc.' },
 		{ symbol: 'TSLA', name: 'Tesla Inc.' },
 		{ symbol: 'NFLX', name: 'Netflix Inc.' },
-		{ symbol: 'BTCUSD', name: 'Bitcoin / U.S. Dollar' }
+		{ symbol: 'NVDA', name: 'Nvidia Corporation' },
+		{ symbol: 'AMZN', name: 'Amazon.com Inc.' },
+		{ symbol: 'META', name: 'Meta Platforms Inc.' },
+		{ symbol: 'MSFT', name: 'Microsoft Corporation' }
+		// { symbol: 'BTCUSD', name: 'Bitcoin / U.S. Dollar' } // TODO: Add different types
 	];
 
 	let selectedSymbol = 'AAPL';

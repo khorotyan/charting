@@ -4,6 +4,10 @@
 
 	export let symbol: string;
 
+	$: {
+		fetchData(symbol);
+	}
+
 	type CandlestickData = {
 		date: Date;
 		open: number;

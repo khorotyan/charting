@@ -3,55 +3,34 @@
 	import { browser } from '$app/environment';
 	import { drawChart } from './utils/drawChart';
 	import { onDestroy, onMount } from 'svelte';
+	import type { CandlestickData } from './types';
+	import { createDragHandler } from './utils/dragHandler';
 
 	export let symbol: string;
-
-	type CandlestickData = {
-		date: Date;
-		open: number;
-		high: number;
-		low: number;
-		close: number;
-		volume: number;
-	};
-
-	// TODO: get rid of magic numbers
-	let startingIndex = 0;
-	let selectedDataLength = 30;
-	let data: CandlestickData[] = [];
-	let selectedData: CandlestickData[] = [];
 
 	// only make the fetch calls in the browser
 	$: if (browser) {
 		symbol && handleFetchData();
 	}
 
-	async function handleFetchData() {
-		data = await fetchData(symbol);
+	onMount(() => {
+		handleOnMount();
+	});
 
-		// show only 1/6th of data
-		// TODO: Later fetch data again when reaching close to the edges of data
-		selectedDataLength = Math.floor(data.length / 6);
-		startingIndex = Math.ceil(5 * selectedDataLength);
-		selectedData = data.slice(startingIndex);
+	onDestroy(() => {
+		handleOnDestroy();
+	});
 
-		drawChart(selectedData);
-	}
-
+	// TODO: get rid of magic numbers
+	// startingIndex can be saved alongside the symbol name in local storage
+	// for the user to be able to come back to the same chart and then having reset button for resetting
+	let startingIndex = 0;
+	let selectedDataLength = 30;
+	let data: CandlestickData[] = [];
+	let selectedData: CandlestickData[] = [];
 	let chartElement: HTMLDivElement;
-	let isDragging = false;
-	let startX = 0;
 
-	function handleMouseDown(event) {
-		isDragging = true;
-		startX = event.clientX;
-	}
-
-	function handleMouseMove(event) {
-		if (!isDragging) return;
-		const difference = event.clientX - startX;
-		startX = event.clientX;
-
+	function setData(difference: number) {
 		// do not let the user to scroll too much to the left or right
 		let newStartingIndex = startingIndex - Math.ceil(difference / 3);
 		let rightmostIndex = data.length - selectedDataLength / 3;
@@ -65,31 +44,32 @@
 		let newLength = Math.min(startingIndex + selectedDataLength, data.length);
 		selectedData = data.slice(newStartingIndex, newLength);
 		startingIndex = newStartingIndex;
-		console.log('startingIndex', startingIndex);
 
 		drawChart(selectedData);
 
-		// TODO: throttle
+		// TODO: Throttling made the user experience bad by looking laggy
+		// very lowers didn't like 20ms, however that won't change much for performance
+		// the best solution is to use d3 capabilities to not clear and draw again but instead making changes to the existing chart
 	}
 
-	function handleMouseUp() {
-		if (!isDragging) return;
-		isDragging = false;
+	// Note: we can't directly pass chartElement
+	// function called on mount to make sure we have the value before using
+	const { handleOnMount, handleOnDestroy } = createDragHandler({
+		getChartElement: () => chartElement,
+		setData
+	});
+
+	async function handleFetchData() {
+		data = await fetchData(symbol);
+
+		// show only 1/6th of data
+		// TODO: Later fetch data again when reaching close to the edges of data
+		selectedDataLength = Math.floor(data.length / 6);
+		startingIndex = Math.ceil(5 * selectedDataLength);
+		selectedData = data.slice(startingIndex);
+
+		drawChart(selectedData);
 	}
-
-	onMount(() => {
-		chartElement.addEventListener('mousedown', handleMouseDown);
-		chartElement.addEventListener('mousemove', handleMouseMove);
-		chartElement.addEventListener('mouseup', handleMouseUp);
-	});
-
-	onDestroy(() => {
-		if (chartElement) {
-			chartElement.removeEventListener('mousedown', handleMouseDown);
-			chartElement.removeEventListener('mousemove', handleMouseMove);
-			chartElement.removeEventListener('mouseup', handleMouseUp);
-		}
-	});
 </script>
 
 <div id="chart" bind:this={chartElement} class="chart">

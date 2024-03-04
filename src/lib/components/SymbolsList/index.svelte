@@ -20,7 +20,10 @@
 			<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 			<!-- svelte-ignore a11y-click-events-have-key-events -->
 			<li
-				class="symbols-list__item {item.change >= 0 ? 'positive' : 'negative'}"
+				class="symbols-list__item {item.change >= 0 ? 'positive' : 'negative'} {item.symbol ===
+				$selectedSymbol?.symbol
+					? 'selected'
+					: ''}"
 				on:click={() => selectSymbol(item)}
 			>
 				<span>{item.symbol}</span>

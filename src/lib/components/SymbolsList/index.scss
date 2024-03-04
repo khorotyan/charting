@@ -1,8 +1,9 @@
 .symbols-list {
-	max-height: 450px;
+	max-height: 430px;
 	overflow-y: auto;
 	border: 1px solid #ccc;
 	border-radius: 4px;
+	margin-top: 20px;
 
 	&__header {
 		display: flex;
@@ -30,6 +31,11 @@
 
 		&.negative span:not(:first-child) {
 			color: #ef5350;
+		}
+
+		&.selected {
+			background-color: #f4f4f4;
+			font-weight: bold;
 		}
 
 		&:hover {

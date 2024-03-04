@@ -1,12 +1,11 @@
 .main {
 	display: flex;
-	justify-content: space-between;
 
 	&__chart-container {
-		flex-grow: 1;
+		width: 1000px;
 	}
 
 	&__symbols-container {
-		width: 20%;
+		width: 300px;
 	}
 }

@@ -4,16 +4,20 @@ import type { CandlestickData } from '../types';
 // TODO: Remove 'any' types and handle incorrect type assertions
 export function drawChart(data: CandlestickData[]): void {
 	const margin = { top: 20, right: 50, bottom: 70, left: 40 };
-	const width = 800 - margin.left - margin.right;
-	const height = 400 - margin.top - margin.bottom;
+	const width = 1000 - margin.left - margin.right;
+	const height = 500 - margin.top - margin.bottom;
 	const volumeHeight = 80; // max height for volume bars
 
 	// clear any previous chart
-	d3.select('#chart').selectAll('*').remove();
+	d3.select('#chart').select('svg.main-chart').remove();
 
 	const svg = d3
 		.select('#chart')
 		.append('svg')
+		.attr('class', 'main-chart')
+		.style('position', 'absolute')
+		.style('top', '0')
+		.style('left', '0')
 		.attr('width', width + margin.left + margin.right)
 		.attr('height', height + margin.top + margin.bottom)
 		.append('g')

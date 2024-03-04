@@ -5,6 +5,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import type { CandlestickData } from './types';
 	import { createDragHandler } from './utils/dragHandler';
+	import OverlayLines from './OverlayLines.svelte';
 
 	export let symbol: string;
 
@@ -29,6 +30,10 @@
 	let data: CandlestickData[] = [];
 	let selectedData: CandlestickData[] = [];
 	let chartElement: HTMLDivElement;
+
+	// mouse position for vertical and horizontal lines
+	let mouseX = 0;
+	let mouseY = 0;
 
 	function setData(difference: number) {
 		// do not let the user to scroll too much to the left or right
@@ -70,10 +75,30 @@
 
 		drawChart(selectedData);
 	}
+
+	function handleMouseMove(event: MouseEvent) {
+		const rect = chartElement.getBoundingClientRect();
+		mouseX = event.clientX - rect.left;
+		mouseY = event.clientY - rect.top;
+	}
+
+	function handleMouseLeave() {
+		mouseX = 0;
+		mouseY = 0;
+	}
 </script>
 
-<div id="chart" bind:this={chartElement} class="chart">
+<div
+	id="chart"
+	class="chart"
+	role="presentation"
+	tabindex="-1"
+	bind:this={chartElement}
+	on:mousemove={handleMouseMove}
+	on:mouseleave={handleMouseLeave}
+>
 	<p>Chart for <b>{symbol}</b></p>
+	<OverlayLines {mouseX} {mouseY} />
 </div>
 
 <style lang="scss">

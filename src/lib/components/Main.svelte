@@ -1,31 +1,28 @@
 <script lang="ts">
 	import SymbolsList from './SymbolsList/index.svelte';
 	import Chart from './Chart/index.svelte';
+	import { symbols } from '$lib/store/symbols';
+	import { selectedSymbol } from '$lib/store/selectedSymbol';
+	import { onMount } from 'svelte';
 
-	let symbols = [
-		{ symbol: 'AAPL', name: 'Apple Inc.' },
-		{ symbol: 'TSLA', name: 'Tesla Inc.' },
-		{ symbol: 'NFLX', name: 'Netflix Inc.' },
-		{ symbol: 'NVDA', name: 'Nvidia Corporation' },
-		{ symbol: 'AMZN', name: 'Amazon.com Inc.' },
-		{ symbol: 'META', name: 'Meta Platforms Inc.' },
-		{ symbol: 'MSFT', name: 'Microsoft Corporation' }
-		// { symbol: 'BTCUSD', name: 'Bitcoin / U.S. Dollar' } // TODO: Add different types
-	];
-
-	let selectedSymbol = 'AAPL';
-
-	function handleSymbolSelection(symbol: string) {
-		selectedSymbol = symbol;
-	}
+	onMount(async () => {
+		try {
+			await symbols.initialize();
+			selectedSymbol.set($symbols[0]);
+		} catch (err) {
+			console.log(err);
+		}
+	});
 </script>
 
 <div class="main">
 	<main class="main__chart-container">
-		<Chart symbol={selectedSymbol} />
+		{#if $selectedSymbol}
+			<Chart symbol={$selectedSymbol.symbol} name={$selectedSymbol.companyName} />
+		{/if}
 	</main>
 	<aside class="main__symbols-container">
-		<SymbolsList {symbols} selectSymbol={handleSymbolSelection} />
+		<SymbolsList />
 	</aside>
 </div>
 

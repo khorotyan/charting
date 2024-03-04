@@ -8,6 +8,7 @@
 	import OverlayLines from './OverlayLines.svelte';
 
 	export let symbol: string;
+	export let name: string;
 
 	// only make the fetch calls in the browser
 	$: if (browser) {
@@ -97,7 +98,7 @@
 	on:mousemove={handleMouseMove}
 	on:mouseleave={handleMouseLeave}
 >
-	<p>Chart for <b>{symbol}</b></p>
+	<p>{name} (<b>{symbol}</b>) • 1D</p>
 	<OverlayLines {mouseX} {mouseY} />
 </div>
 

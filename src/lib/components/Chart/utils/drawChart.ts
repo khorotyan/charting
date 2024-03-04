@@ -39,12 +39,31 @@ export function drawChart(data: CandlestickData[]): void {
 
 	const yScale = d3.scaleLinear().domain([extendedMinYValue, extendedMaxYValue]).range([height, 0]);
 
+	const monthsXScale = d3
+		.scaleTime()
+		.domain(d3.extent(data, (d) => d.date) as [Date, Date])
+		.range([0, width]);
+
+	// store one date from each month
+	const firstDaysOfMonth = Array.from(
+		new Set(data.map((d) => new Date(d.date.getFullYear(), d.date.getMonth()).toISOString()))
+	);
+
+	// handle months
+	const xAxis = d3
+		.axisBottom(monthsXScale)
+		.tickValues(firstDaysOfMonth.map((date) => new Date(date)))
+		.tickFormat(d3.timeFormat('%B') as any);
+	// add x-axis to the chart
 	svg
 		.append('g')
 		.attr('transform', `translate(0,${height})`)
-		.call(d3.axisBottom(xScale as any).tickFormat(d3.timeFormat('%Y-%m-%d') as any));
+		.call(xAxis)
+		.style('font-weight', 'bold')
+		.style('font-size', '13px')
+		.style('color', '#303030');
 
-	svg.append('g').call(d3.axisLeft(yScale));
+	svg.append('g').call(d3.axisLeft(yScale)).style('font-size', '12px');
 
 	// draw candlesticks
 	data.forEach((d) => {
